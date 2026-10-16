@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar System Physics & Orbital Dynamics Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        h1, h2, h3 {
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+
+        .header-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1.2fr 0.8fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            background: #05070a;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        canvas#orbitCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 650px;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #21262d;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #30363d;
+            border-color: var(--accent-blue);
+        }
+
+        button.active {
+            background: #238636;
+            border-color: #2ea043;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        input[type=range] {
+            flex-grow: 1;
+        }
+
+        .planet-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .planet-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .data-item {
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .data-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        .data-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .physics-box {
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid var(--accent-blue);
+            margin-top: 15px;
+        }
+
+        .equation {
+            background: var(--bg-color);
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-family: "Courier New", Courier, monospace;
+            color: #58a6ff;
+            border: 1px solid var(--border-color);
+        }
+
+        .planet-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .planet-btn {
+            font-size: 0.85rem;
+            padding: 4px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Solar System Physics & Orbital Dynamics Simulator</h1>
+    <div class="header-subtitle">An interactive computational model analyzing Keplerian orbits, atmospheric escape limits, and gravitational dynamics across the Solar System.</div>
+
+    <div class="layout-grid">
+        <div>
+            <div class="card">
+                <h2>Interactive Orbital Simulator</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Click on any planet in orbit or use the buttons on the right to inspect its orbital velocity and atmospheric retention characteristics.</p>
+                
+                <div class="canvas-container">
+                    <canvas id="orbitCanvas" width="650" height="650"></canvas>
+                </div>
+
+                <div class="controls-bar">
+                    <button id="playPauseBtn" class="active">Pause</button>
+                    <div class="slider-group">
+                        <label for="speedSlider" style="font-size: 0.85rem; color: var(--text-muted);">Sim Speed:</label>
+                        <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+                    </div>
+                    <button id="toggleTrailsBtn">Toggle Orbits</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Mathematical & Physical Foundations</h2>
+                <div class="equation">Kepler's 3rd Law: T² = (4π² / G·M) · a³</div>
+                <div class="equation">Orbital Speed: v_orb ≈ √(G·M / a)</div>
+                <div class="equation">Escape Velocity: v_esc = √(2·G·M_p / R_p)</div>
+                <div class="equation">Thermal Speed: v_th = √(8·k_B·T_eq / π·m)</div>
+                <div class="physics-box">
+                    <strong>Jeans Atmospheric Escape Rule:</strong> A planetary body retains atmospheric gas over geological time (10⁹ yrs) if <strong>v_esc &gt; 6 × v_th</strong>. If thermal velocity exceeds this threshold, atmospheric particles systematically escape into space.
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="planet-selector" id="planetSelector"></div>
+
+                <div class="planet-header">
+                    <span id="planetBadge" class="planet-badge"></span>
+                    <h2 id="planetName" style="border: none; padding: 0; margin: 0;">Earth</h2>
+                </div>
+
+                <div class="data-grid">
+                    <div class="data-item">
+                        <span class="data-label">Semi-Major Axis (a)</span>
+                        <span id="dataAxis" class="data-value">1.000 AU</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Orbital Period (T)</span>
+                        <span id="dataPeriod" class="data-value">1.00 yrs</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Mean Orbital Speed</span>
+                        <span id="dataSpeed" class="data-value">29.78 km/s</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Surface Gravity (g)</span>
+                        <span id="dataGravity" class="data-value">1.00 g</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Escape Velocity (v_esc)</span>
+                        <span id="dataVesc" class="data-value">11.19 km/s</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Equilibrium Temp (T_eq)</span>
+                        <span id="dataTemp" class="data-value">288 K</span>
+                    </div>
+                </div>
+
+                <h3>Astrophysical Overview</h3>
+                <p id="planetDesc" style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main);"></p>
+
+                <div class="physics-box">
+                    <strong>Atmospheric Retention Mechanics:</strong>
+                    <p id="planetAtmosphere" style="font-size: 0.9rem; margin-top: 5px; margin-bottom: 0;"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const planets = [
+            { name: "Mercury", color: "#a6a6a6", radiusAU: 0.387, periodYrs: 0.241, gravityG: 0.38, vEscKms: 4.25, vOrbKms: 47.36, tempK: 440, visualRadius: 5, description: "Mercury is the smallest planet and closest to the Sun. Due to its high orbital eccentricity (e ≈ 0.206), its velocity varies significantly, serving as a classical testbed for General Relativity's perihelion precession.", atmosphere: "Mercury's low escape velocity (4.25 km/s) combined with high surface temperatures means thermal velocities of common gases easily exceed v_esc / 6. Consequently, it cannot retain a substantial atmosphere." },
+            { name: "Venus", color: "#e3bb76", radiusAU: 0.723, periodYrs: 0.615, gravityG: 0.90, vEscKms: 10.36, vOrbKms: 35.02, tempK: 737, visualRadius: 8, description: "Venus is Earth's twin in size and mass, but possesses a runaway greenhouse effect. Its near-circular orbit (e ≈ 0.007) ensures nearly constant solar irradiance across its year.", atmosphere: "With v_esc = 10.36 km/s, Venus easily retains heavy CO2. However, lacking an intrinsic magnetic field, solar wind sputtering continuously strips lighter hydrogen isotopes." },
+            { name: "Earth", color: "#4287f5", radiusAU: 1.000, periodYrs: 1.000, gravityG: 1.00, vEscKms: 11.19, vOrbKms: 29.78, tempK: 288, visualRadius: 8.5, description: "Earth occupies the circumstellar habitable zone where liquid water remains stable. Its orbital dynamics serve as the standard reference baseline (a = 1.0 AU, T = 1.0 year).", atmosphere: "Earth's escape velocity of 11.19 km/s comfortably retains N2 and O2 molecules (v_th ≈ 0.5 km/s << v_esc / 6). Free H2 and He slowly undergo Jeans escape over geological time." },
+            { name: "Mars", color: "#e0533c", radiusAU: 1.524, periodYrs: 1.881, gravityG: 0.38, vEscKms: 5.03, vOrbKms: 24.07, tempK: 210, visualRadius: 6.5, description: "Mars is a cold terrestrial planet with an eccentric orbit (e = 0.093). The variation in solar flux leads to dramatic global dust storms near perihelion.", atmosphere: "With an escape velocity of just 5.03 km/s and the early loss of its intrinsic magnetic dipole, solar wind sputtering stripped over 99% of its original atmosphere." },
+            { name: "Jupiter", color: "#d49b59", radiusAU: 5.204, periodYrs: 11.862, gravityG: 2.53, vEscKms: 59.50, vOrbKms: 13.07, tempK: 124, visualRadius: 15, description: "Jupiter is the most massive planet (M_J ≈ 318 M_Earth). It acts as a gravitational anchor, strongly influencing asteroid belt dynamics via orbital resonances (Kirkwood gaps).", atmosphere: "Jupiter's huge mass creates a massive escape velocity of 59.5 km/s. It retains primordial Hydrogen (H2) and Helium (He) captured directly from the solar nebula." },
+            { name: "Saturn", color: "#e8c87d", radiusAU: 9.582, periodYrs: 29.457, gravityG: 1.06, vEscKms: 35.50, vOrbKms: 9.68, tempK: 95, visualRadius: 13, description: "Saturn is a gas giant famous for its ring system, which exists inside its Roche limit—the radius within which gravitational tidal forces tear satellite bodies apart.", atmosphere: "With v_esc = 35.5 km/s and an equilibrium temperature below 100 K, thermal velocities for atmospheric gas species remain far below the escape threshold." },
+            { name: "Uranus", color: "#72d1d9", radiusAU: 19.201, periodYrs: 84.011, gravityG: 0.89, vEscKms: 21.30, vOrbKms: 6.80, tempK: 59, visualRadius: 10, description: "Uranus is an Ice Giant with an extreme axial tilt (≈ 98°). It orbits at nearly 20 AU, requiring over 84 Earth years to complete a single revolution around the Sun.", atmosphere: "Its cold ambient temperatures and large gravitational potential prevent gas loss, retaining a hydrogen-helium atmosphere with methane cloud layers." },
+            { name: "Neptune", color: "#3862e0", radiusAU: 30.047, periodYrs: 164.79, gravityG: 1.14, vEscKms: 23.50, vOrbKms: 5.43, tempK: 48, visualRadius: 10, description: "Neptune is the outermost major planet. Its existence was predicted mathematically via Newtonian gravitational perturbations on Uranus prior to observation in 1846.", atmosphere: "Neptune's cold environment (T ≈ 48 K) suppresses gas kinetic energy, while its 23.5 km/s escape velocity securely preserves its atmospheric envelope." }
+        ];
+
+        const canvas = document.getElementById('orbitCanvas');
+        const ctx = canvas.getContext('2d');
+        let selectedPlanetIndex = 2;
+        let isRunning = true;
+        let simSpeed = 1.0;
+        let showTrails = true;
+        let angles = planets.map(() => Math.random() * Math.PI * 2);
+
+        function getScaledRadius(radiusAU) {
+            const base = Math.log(radiusAU + 1) / Math.log(31.0 + 1);
+            return 45 + base * 240; 
+        }
+
+        const selectorContainer = document.getElementById('planetSelector');
+        planets.forEach((p, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'planet-btn';
+            btn.innerText = p.name;
+            btn.style.borderColor = p.color;
+            btn.onclick = () => selectPlanet(idx);
+            selectorContainer.appendChild(btn);
+        });
+
+        function selectPlanet(idx) {
+            selectedPlanetIndex = idx;
+            const p = planets[idx];
+            
+            document.getElementById('planetName').innerText = p.name;
+            document.getElementById('planetBadge').style.backgroundColor = p.color;
+            document.getElementById('dataAxis').innerText = p.radiusAU + " AU";
+            document.getElementById('dataPeriod').innerText = p.periodYrs + " yrs";
+            document.getElementById('dataSpeed').innerText = p.vOrbKms + " km/s";
+            document.getElementById('dataGravity').innerText = p.gravityG + " g";
+            document.getElementById('dataVesc').innerText = p.vEscKms + " km/s";
+            document.getElementById('dataTemp').innerText = p.tempK + " K";
+            document.getElementById('planetDesc').innerText = p.description;
+            document.getElementById('planetAtmosphere').innerText = p.atmosphere;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Sun
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 16, 0, Math.PI * 2);
+            ctx.fillStyle = "#ffcc00";
+            ctx.fill();
+
+            // Solar Glow
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 22, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 204, 0, 0.2)";
+            ctx.fill();
+
+            // Planets
+            planets.forEach((p, idx) => {
+                const r = getScaledRadius(p.radiusAU);
+
+                if (showTrails) {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+                    ctx.strokeStyle = (idx === selectedPlanetIndex) ? "rgba(88, 166, 255, 0.7)" : "rgba(255, 255, 255, 0.12)";
+                    ctx.lineWidth = (idx === selectedPlanetIndex) ? 2 : 1;
+                    ctx.stroke();
+                }
+
+                if (isRunning) {
+                    const angularSpeed = (2 * Math.PI / p.periodYrs) * 0.0005 * simSpeed;
+                    angles[idx] += angularSpeed;
+                }
+
+                const x = centerX + r * Math.cos(angles[idx]);
+                const y = centerY + r * Math.sin(angles[idx]);
+
+                p.currentX = x;
+                p.currentY = y;
+
+                // Selection Ring
+                if (idx === selectedPlanetIndex) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, p.visualRadius + 6, 0, Math.PI * 2);
+                    ctx.strokeStyle = "#58a6ff";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                // Planet Body
+                ctx.beginPath();
+                ctx.arc(x, y, p.visualRadius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+
+            let closestDist = Infinity;
+            let closestIndex = -1;
+
+            planets.forEach((p, idx) => {
+                const dx = clickX - p.currentX;
+                const dy = clickY - p.currentY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < closestDist && dist < 30) {
+                    closestDist = dist;
+                    closestIndex = idx;
+                }
+            });
+
+            if (closestIndex !== -1) {
+                selectPlanet(closestIndex);
+            }
+        });
+
+        document.getElementById('playPauseBtn').onclick = function() {
+            isRunning = !isRunning;
+            this.innerText = isRunning ? "Pause" : "Play";
+            this.classList.toggle('active', isRunning);
+        };
+
+        document.getElementById('speedSlider').oninput = function() {
+            simSpeed = parseFloat(this.value);
+        };
+
+        document.getElementById('toggleTrailsBtn').onclick = function() {
+            showTrails = !showTrails;
+        };
+
+        selectPlanet(2);
+        draw();
+    </script>
+</body>
+</html>
+
